@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { EnvironmentRequest } from '../types/envTypes'; // Updated import
+import { EnvironmentRequest } from '../types/envTypes';
 import { STATUS } from '../utils/constants';
 
 export const createEnvironment = (req: Request, res: Response) => {
