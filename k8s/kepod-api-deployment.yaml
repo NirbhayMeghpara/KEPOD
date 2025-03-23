@@ -1,0 +1,61 @@
+# Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kepod
+---
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kepod-api
+  namespace: kepod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kepod-api
+  template:
+    metadata:
+      labels:
+        app: kepod-api
+    spec:
+      containers:
+        - name: kepod-api
+          image: 868610198161.dkr.ecr.us-east-1.amazonaws.com/kepod-api:latest
+          ports:
+            - containerPort: 3000
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: kepod-api-service
+  namespace: kepod
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: "/health"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-port: "3000"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: "HTTP"
+spec:
+  selector:
+    app: kepod-api
+  ports:
+    - port: 3000
+      targetPort: 3000
+      protocol: TCP
+      name: http
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: websocket
+  type: LoadBalancer
+  externalTrafficPolicy: Local

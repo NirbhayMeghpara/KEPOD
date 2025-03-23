@@ -14,8 +14,8 @@ Resources:
       Tags:
         - Key: Name
           Value: kepod-vpc
-  # Subnets
-  Subnet1:
+  # Public Subnets
+  PublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
@@ -23,8 +23,8 @@ Resources:
       AvailabilityZone: "us-east-1a"
       Tags:
         - Key: Name
-          Value: kepod-subnet-1
-  Subnet2:
+          Value: kepod-public-subnet-1
+  PublicSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
@@ -32,7 +32,26 @@ Resources:
       AvailabilityZone: "us-east-1b"
       Tags:
         - Key: Name
-          Value: kepod-subnet-2
+          Value: kepod-public-subnet-2
+  # Private Subnets
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: "10.0.3.0/24"
+      AvailabilityZone: "us-east-1a"
+      Tags:
+        - Key: Name
+          Value: kepod-private-subnet-1
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: "10.0.4.0/24"
+      AvailabilityZone: "us-east-1b"
+      Tags:
+        - Key: Name
+          Value: kepod-private-subnet-2
   # Internet Gateway
   InternetGateway:
     Type: AWS::EC2::InternetGateway
@@ -41,28 +60,59 @@ Resources:
     Properties:
       VpcId: !Ref VPC
       InternetGatewayId: !Ref InternetGateway
-  # Route Table
-  RouteTable:
+  # Public Route Table
+  PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref VPC
-  Route:
+  PublicRoute:
     Type: AWS::EC2::Route
     Properties:
-      RouteTableId: !Ref RouteTable
+      RouteTableId: !Ref PublicRouteTable
       DestinationCidrBlock: "0.0.0.0/0"
       GatewayId: !Ref InternetGateway
-  SubnetRouteTableAssociation1:
+  PublicSubnetRouteTableAssociation1:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      SubnetId: !Ref Subnet1
-      RouteTableId: !Ref RouteTable
-  SubnetRouteTableAssociation2:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+  PublicSubnetRouteTableAssociation2:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      SubnetId: !Ref Subnet2
-      RouteTableId: !Ref RouteTable
-  # Security Group for EKS and Fargate
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+  # NAT Gateway (in Public Subnet)
+  ElasticIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      AllocationId: !GetAtt ElasticIP.AllocationId
+  # Private Route Table
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+  PrivateRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: "0.0.0.0/0"
+      NatGatewayId: !Ref NatGateway
+  PrivateSubnetRouteTableAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet1
+      RouteTableId: !Ref PrivateRouteTable
+  PrivateSubnetRouteTableAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet2
+      RouteTableId: !Ref PrivateRouteTable
+  # Security Group
   EKSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -72,17 +122,17 @@ Resources:
         - IpProtocol: tcp
           FromPort: 3000
           ToPort: 3000
-          CidrIp: "0.0.0.0/0" # Open to all
+          CidrIp: "0.0.0.0/0"
         - IpProtocol: tcp
           FromPort: 8080
           ToPort: 8080
-          CidrIp: "0.0.0.0/0" # WebSocket
+          CidrIp: "0.0.0.0/0"
         - IpProtocol: tcp
           FromPort: 443
           ToPort: 443
-          CidrIp: "10.0.0.0/16" # EKS control plane to pods
+          CidrIp: "10.0.0.0/16"
       SecurityGroupEgress:
-        - IpProtocol: -1 # All outbound
+        - IpProtocol: -1
           FromPort: 0
           ToPort: 65535
           CidrIp: "0.0.0.0/0"
@@ -97,10 +147,33 @@ Resources:
       RoleArn: !Ref RoleArn
       ResourcesVpcConfig:
         SubnetIds:
-          - !Ref Subnet1
-          - !Ref Subnet2
+          - !Ref PublicSubnet1
+          - !Ref PublicSubnet2
+          - !Ref PrivateSubnet1
+          - !Ref PrivateSubnet2
         SecurityGroupIds:
           - !Ref EKSSecurityGroup
+  NodeGroup:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !Ref EKSCluster
+      NodegroupName: kepod-nodegroup
+      NodeRole: !Ref RoleArn
+      Subnets:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      InstanceTypes:
+        - t3.small
+      ScalingConfig:
+        MinSize: 1
+        MaxSize: 2
+        DesiredSize: 1
+      Tags:
+        Name: kepod-nodes
+  ECRRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: kepod-api
 Outputs:
   ClusterName:
     Value: !Ref EKSCluster
@@ -108,3 +181,5 @@ Outputs:
     Value: !Ref VPC
   SecurityGroupId:
     Value: !Ref EKSSecurityGroup
+  ECRRepositoryUri:
+    Value: !GetAtt ECRRepository.RepositoryUri
