@@ -1,9 +1,9 @@
 import express, { Request, Response } from 'express';
-import { config } from './config/config';
-import envRoutes from './routes/envRoutes';
-import { errorHandler } from './middleware/errorHandler';
-import { requestLogger } from './middleware/requestLogger';
-import './websocket';
+import { config } from './config/config.js';
+import envRoutes from './routes/envRoutes.js';
+import { errorHandler } from './middleware/errorHandler.js';
+import { requestLogger } from './middleware/requestLogger.js';
+import './websocket.js';
 
 const app = express();
 app.use(express.json());

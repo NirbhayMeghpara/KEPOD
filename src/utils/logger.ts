@@ -1,7 +1,7 @@
 import { createLogger, format, transports } from 'winston';
 import Transport from 'winston-transport';
-import { config } from '../config/config';
-import { broadcastLog } from '../websocket';
+import { config } from '../config/config.js';
+import { broadcastLog } from '../websocket.js';
 
 // Custom WebSocket Transport
 class WebSocketTransport extends Transport {

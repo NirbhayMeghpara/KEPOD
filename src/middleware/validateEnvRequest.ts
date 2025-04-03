@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import { EnvironmentRequest } from '../types/envTypes';
+import { EnvironmentRequest } from '../types/envTypes.js';
 
 export const validateEnvRequest = (req: Request, res: Response, next: NextFunction): void => {
-  const { name, image, ttl } = req.body as Partial<EnvironmentRequest>;
+  const { name, image, ttl, targetPort } = req.body as Partial<EnvironmentRequest>;
 
   if (!name) {
     res.status(400).json({ error: 'Environment name is required' });
@@ -36,6 +36,19 @@ export const validateEnvRequest = (req: Request, res: Response, next: NextFuncti
   }
   if (ttl <= 0) {
     res.status(400).json({ error: 'TTL must be greater than 0' });
+    return;
+  }
+
+  if (!targetPort) {
+    res.status(400).json({ error: 'Target port is required' });
+    return;
+  }
+  if (typeof targetPort !== 'number') {
+    res.status(400).json({ error: 'Target port must be a number' });
+    return;
+  }
+  if (targetPort <= 0 || targetPort > 65535) {
+    res.status(400).json({ error: 'Target port must be between 1 and 65535' });
     return;
   }
 

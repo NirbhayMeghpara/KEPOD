@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "description": "Kubernetes Environment Provisioner On Demand",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "start": "node dist/server.js",
-    "dev": "ts-node-dev src/server.ts",
+    "dev": "ts-node-dev --esm src/server.ts",
     "build": "tsc"
   },
   "keywords": [],
@@ -22,9 +23,11 @@
     "@aws-sdk/client-dynamodb": "^3.777.0",
     "@aws-sdk/client-sqs": "^3.777.0",
     "@aws-sdk/credential-providers": "^3.778.0",
+    "@kubernetes/client-node": "^1.1.0",
     "@types/express": "^5.0.0",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "sqs-consumer": "^11.6.0",
     "uuid": "^11.1.0",
     "winston": "^3.17.0",
     "winston-transport": "^4.9.0",

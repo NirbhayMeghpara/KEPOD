@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { createEnvironment, getEnvironment } from '../controllers/envController';
-import { validateEnvRequest } from '../middleware/validateEnvRequest';
-import { envExists } from '../middleware/envExists';
+import { createEnvironment, getEnvironment } from '../controllers/envController.js';
+import { validateEnvRequest } from '../middleware/validateEnvRequest.js';
+import { envExists } from '../middleware/envExists.js';
 
 const router = Router();
 
