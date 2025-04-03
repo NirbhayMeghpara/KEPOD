@@ -26,6 +26,19 @@ spec:
           ports:
             - containerPort: 3000
             - containerPort: 8080
+          env:
+            - name: AWS_REGION
+              value: "us-east-1"
+            - name: DYNAMODB_TABLE
+              value: "kepod-environments"
+            - name: SQS_QUEUE_URL
+              value: "https://sqs.us-east-1.amazonaws.com/868610198161/kepod-provisioning-queue"
+            - name: AWS_ACCESS_KEY_ID
+              value: "<your-access-key-id>"
+            - name: AWS_SECRET_ACCESS_KEY
+              value: "<your-secret-access-key>"
+            - name: AWS_SESSION_TOKEN
+              value: "<your-session-token>"
           resources:
             requests:
               cpu: "250m"
