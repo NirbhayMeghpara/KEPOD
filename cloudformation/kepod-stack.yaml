@@ -174,6 +174,23 @@ Resources:
     Type: AWS::ECR::Repository
     Properties:
       RepositoryName: kepod-api
+  DynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: kepod-environments
+      AttributeDefinitions:
+        - AttributeName: env_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: env_id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+  SQSQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: kepod-provisioning-queue
 Outputs:
   ClusterName:
     Value: !Ref EKSCluster
@@ -183,3 +200,7 @@ Outputs:
     Value: !Ref EKSSecurityGroup
   ECRRepositoryUri:
     Value: !GetAtt ECRRepository.RepositoryUri
+  DynamoDBTableArn:
+    Value: !GetAtt DynamoDBTable.Arn
+  SQSQueueUrl:
+    Value: !Ref SQSQueue
