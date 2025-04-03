@@ -10,7 +10,7 @@ const dynamoClient = new DynamoDBClient({ region: AWS_REGION, credentials: fromE
 const sqsClient = new SQSClient({ region: AWS_REGION, credentials: fromEnv() });
 
 export const createEnvironment = async (req: Request, res: Response, next: NextFunction) => {
-  const { name, image, ttl } = req.body as EnvironmentRequest;
+  const { name, image, ttl, targetPort } = req.body as EnvironmentRequest;
 
   if (!SQS_QUEUE_URL) {
     res.status(500).json({ error: 'SQS queue URL not configured' });
@@ -30,6 +30,7 @@ export const createEnvironment = async (req: Request, res: Response, next: NextF
         ttl: { N: ttl.toString() },
         status: { S: STATUS.PENDING },
         namespace: { S: namespace },
+        target_port: { N: targetPort.toString() },
         created_at: { N: Date.now().toString() },
       },
     };
@@ -37,7 +38,7 @@ export const createEnvironment = async (req: Request, res: Response, next: NextF
 
     const sqsParams = {
       QueueUrl: SQS_QUEUE_URL,
-      MessageBody: JSON.stringify({ env_id, env_name: name, image, ttl, namespace }),
+      MessageBody: JSON.stringify({ env_id, env_name: name, image, ttl, namespace, targetPort }),
     };
     await sqsClient.send(new SendMessageCommand(sqsParams));
 
