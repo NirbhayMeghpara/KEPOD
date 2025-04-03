@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { EnvironmentRequest } from '../types/envTypes';
+import { EnvironmentRequest } from '../types/envTypes.js';
 
 export const validateEnvRequest = (req: Request, res: Response, next: NextFunction): void => {
   const { name, image, ttl, targetPort } = req.body as Partial<EnvironmentRequest>;

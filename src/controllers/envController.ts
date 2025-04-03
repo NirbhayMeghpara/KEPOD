@@ -1,13 +1,10 @@
 import { NextFunction, Request, Response } from 'express';
-import { EnvironmentRequest } from '../types/envTypes';
-import { STATUS, AWS_REGION, DYNAMODB_TABLE, SQS_QUEUE_URL } from '../utils/constants';
-import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb';
-import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
-import { fromEnv } from '@aws-sdk/credential-providers';
+import { EnvironmentRequest } from '../types/envTypes.js';
+import { STATUS, DYNAMODB_TABLE, SQS_QUEUE_URL } from '../utils/constants.js';
+import { PutItemCommand } from '@aws-sdk/client-dynamodb';
+import { SendMessageCommand } from '@aws-sdk/client-sqs';
 import { v4 as uuidv4 } from 'uuid';
-
-const dynamoClient = new DynamoDBClient({ region: AWS_REGION, credentials: fromEnv() });
-const sqsClient = new SQSClient({ region: AWS_REGION, credentials: fromEnv() });
+import { dynamoClient, sqsClient } from '../awsClients.js';
 
 export const createEnvironment = async (req: Request, res: Response, next: NextFunction) => {
   const { name, image, ttl, targetPort } = req.body as EnvironmentRequest;
@@ -18,7 +15,7 @@ export const createEnvironment = async (req: Request, res: Response, next: NextF
   }
 
   const env_id = uuidv4();
-  const namespace = `env-${env_id}`;
+  const namespace = `${name}-${env_id}`;
 
   try {
     const dynamoParams = {

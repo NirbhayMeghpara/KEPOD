@@ -1,5 +1,5 @@
 import { WebSocketServer, WebSocket } from 'ws';
-import logger from './utils/logger';
+import logger from './utils/logger.js';
 
 const wss = new WebSocketServer({ port: 8080 });
 const subscriptions = new Map<WebSocket, string>();
