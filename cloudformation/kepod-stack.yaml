@@ -4,7 +4,7 @@ Parameters:
     Type: String
     Default: "arn:aws:iam::868610198161:role/LabRole"
 Resources:
-  # VPC
+  # VPC for the EKS cluster
   VPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -15,6 +15,7 @@ Resources:
         - Key: Name
           Value: kepod-vpc
   # Public Subnets
+  # These subnets are used for the NAT Gateway and public facing resources
   PublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
@@ -34,6 +35,7 @@ Resources:
         - Key: Name
           Value: kepod-public-subnet-2
   # Private Subnets
+  # These subnets are used for the EKS cluster nodes and other private resources and access the internet through the NAT Gateway
   PrivateSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
@@ -53,6 +55,7 @@ Resources:
         - Key: Name
           Value: kepod-private-subnet-2
   # Internet Gateway
+  # This is used to allow the public subnets to access the internet and for the NAT Gateway to access the internet
   InternetGateway:
     Type: AWS::EC2::InternetGateway
   GatewayAttachment:
@@ -61,6 +64,7 @@ Resources:
       VpcId: !Ref VPC
       InternetGatewayId: !Ref InternetGateway
   # Public Route Table
+  # This route table is used for the public subnets and NAT Gateway to route traffic to the internet through the Internet Gateway
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -92,6 +96,7 @@ Resources:
       SubnetId: !Ref PublicSubnet1
       AllocationId: !GetAtt ElasticIP.AllocationId
   # Private Route Table
+  # This route table is used for the private subnets to route traffic through the NAT Gateway
   PrivateRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -112,7 +117,8 @@ Resources:
     Properties:
       SubnetId: !Ref PrivateSubnet2
       RouteTableId: !Ref PrivateRouteTable
-  # Security Group
+  # Security Group for EKS Cluster
+  # This security group allows traffic on ports 3000, 8080, and 443 for the KEPOD API and WebSocket connections
   EKSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -153,6 +159,8 @@ Resources:
           - !Ref PrivateSubnet2
         SecurityGroupIds:
           - !Ref EKSSecurityGroup
+  # EKS Node Group 
+  # This node group is created in private subnets for security reasons and the nodes can access the internet through the NAT Gateway
   NodeGroup:
     Type: AWS::EKS::Nodegroup
     Properties:
@@ -170,10 +178,17 @@ Resources:
         DesiredSize: 1
       Tags:
         Name: kepod-nodes
+  # ECR Repository for KEPOD API
   ECRRepository:
     Type: AWS::ECR::Repository
     Properties:
       RepositoryName: kepod-api
+  # ECR Repository for Provisioner
+  ECRRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: kepod-provisioner
+  # DynamoDB table for storing environment data
   DynamoDBTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -187,6 +202,7 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
+  # SQS Queue for provisioning requests
   SQSQueue:
     Type: AWS::SQS::Queue
     Properties:
