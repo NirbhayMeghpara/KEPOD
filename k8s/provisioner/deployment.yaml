@@ -24,11 +24,11 @@ spec:
             - name: SQS_QUEUE_URL
               value: "https://sqs.us-east-1.amazonaws.com/868610198161/kepod-provisioning-queue"
             - name: AWS_ACCESS_KEY_ID
-              value: "<your-access-key-id>"
+              value: "ASIA4UPJTZKIRQQRXIVZ"
             - name: AWS_SECRET_ACCESS_KEY
-              value: "<your-secret-access-key>"
+              value: "brekeCBBnh4BplMPPpI7oo2Z3p43IqB+lcEMmyKB"
             - name: AWS_SESSION_TOKEN
-              value: "<your-session-token>"
+              value: "IQoJb3JpZ2luX2VjEKr//////////wEaCXVzLXdlc3QtMiJHMEUCIDGlIRnsH0oungi4tRG/Ngr+q4XYfpIn7x5JcMd+e8txAiEA7EuCPZOdi7ZME7UPJz3ZjYeNDxwtPSfByrgVm5OMsdEqqQIIMxAAGgw4Njg2MTAxOTgxNjEiDAWOnVOn7hKLvySRVyqGAhtOSkTzME1GbUFmQpOKarTGNH8p3SauwHKag7eY8WwngCLeJLFlAZ34+TKp/NT2dX+kgNq+Mhgnx4WwOSO00f6gK2aUryraUHDoFpLocY12lt2l+ONdL1333Sa8e1NrO4vF2YvuRjQrA4oKDyCeyi/wwmaG9aZ8n+vNsWNmrLIfU/fCKUTiLj8F/lOfxD+xKZzjefcs04SIbQevfJKX+KARGImJD43YnDOVday72zuA88DM82sIMOav6zwrKjqA3YOtj/Fpj9Wq2UDbfim/qn8LEwkS1f05pVKgi2ij0vduSQ2QoWNtDRdbvt0fGXT/AM9xACZ4jdXy/SHrq3MG9z9YRnVvx5Yw3736vwY6nQHw4mmLD/XSRCxtqNjh5QzloAfp3WO1t7EYiRJlwoKui2b93ts6SS1pIrGbiZkzLbJ6rw+vqKwFsOHJSgBQ/WSceBoxLosNld3eCv9fwBYflnrbsHt/qfX03uoQfIEUKSua2H873k0GRJiP4m4KGoQDY5KsElKc9N6AusKTYVQkVsdCYws0ZTsttsqpLTrJUuDuZykrRunI2ZfYsyZ/"
           resources:
             requests:
               cpu: "250m"
