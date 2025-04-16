@@ -179,12 +179,12 @@ Resources:
       Tags:
         Name: kepod-nodes
   # ECR Repository for KEPOD API
-  ECRRepository:
+  ECRRepositoryApi:
     Type: AWS::ECR::Repository
     Properties:
       RepositoryName: kepod-api
   # ECR Repository for Provisioner
-  ECRRepository:
+  ECRRepositoryProvisioner:
     Type: AWS::ECR::Repository
     Properties:
       RepositoryName: kepod-provisioner
@@ -214,8 +214,10 @@ Outputs:
     Value: !Ref VPC
   SecurityGroupId:
     Value: !Ref EKSSecurityGroup
-  ECRRepositoryUri:
-    Value: !GetAtt ECRRepository.RepositoryUri
+  ECRRepositoryApiUri:
+    Value: !GetAtt ECRRepositoryApi.RepositoryUri
+  ECRRepositoryProvisionerUri:
+    Value: !GetAtt ECRRepositoryProvisioner.RepositoryUri
   DynamoDBTableArn:
     Value: !GetAtt DynamoDBTable.Arn
   SQSQueueUrl:
