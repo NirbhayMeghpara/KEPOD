@@ -4,6 +4,7 @@ import { DYNAMODB_TABLE, SQS_QUEUE_URL, STATUS } from '../utils/constants.js';
 import { SQSMessageBody } from '../types/sqsMessageBodyTypes.js';
 import { DeleteMessageCommand } from '@aws-sdk/client-sqs';
 import { dynamoClient, sqsClient } from '../awsClients.js';
+import logger from '../utils/logger.js';
 
 const kc = new KubeConfig();
 kc.loadFromDefault();
@@ -78,7 +79,7 @@ async function createDeployment(k8sAppsApi: AppsV1Api, namespace: string, env_na
   }
 }
 
-async function createService(k8sCoreApi: CoreV1Api, namespace: string, env_name: string, targetPort: number) {
+async function createService(k8sCoreApi: CoreV1Api, namespace: string, env_name: string, targetPort: number): Promise<string> {
   const serviceSpec: V1Service = {
     metadata: { name: `${namespace}-svc`, namespace },
     spec: {
@@ -89,14 +90,33 @@ async function createService(k8sCoreApi: CoreV1Api, namespace: string, env_name:
   };
 
   try {
-    const service = await k8sCoreApi.createNamespacedService({ namespace, body: serviceSpec });
-    const ingress = service.status?.loadBalancer?.ingress?.[0];
-    const hostname = ingress?.hostname || 'pending';
-    console.log(`Created service: ${namespace}-svc`);
-    return hostname;
+    await k8sCoreApi.createNamespacedService({ namespace, body: serviceSpec });
+    logger.info({ message: `Created service: ${namespace}-svc`, namespace });
   } catch (err: any) {
     if (err.response?.statusCode !== 409) throw err;
-    console.log(`Service ${namespace}-svc already exists`);
+    logger.info({ message: `Service ${namespace}-svc already exists`, namespace });
     return 'existing-service';
   }
+
+  // Poll for LoadBalancer ingress
+  const maxAttempts = 12; // 2 minutes (12 * 10s)
+  const pollInterval = 10000; // 10s
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const service = await k8sCoreApi.readNamespacedService({ name: `${namespace}-svc`, namespace });
+      const ingress = service.status?.loadBalancer?.ingress?.[0];
+      const hostname = ingress?.hostname;
+      if (hostname) {
+        logger.info({ message: `Service ingress available: ${hostname}`, namespace });
+        return hostname;
+      }
+      logger.info({ message: `Waiting for service ingress (attempt ${attempt}/${maxAttempts})`, namespace });
+      await new Promise(resolve => setTimeout(resolve, pollInterval));
+    } catch (err: any) {
+      logger.error({ message: `Error polling service ${namespace}-svc: ${err.message}`, namespace });
+    }
+  }
+
+  logger.warn({ message: `Service ingress not available after ${maxAttempts} attempts`, namespace });
+  return 'pending';
 }
