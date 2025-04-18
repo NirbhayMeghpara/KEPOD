@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: kepod-cleanup
+  namespace: kepod
+spec:
+  schedule: "*/5 * * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      template:
+        spec:
+          serviceAccountName: default
+          containers:
+          - name: cleanup
+            image: 868610198161.dkr.ecr.us-east-1.amazonaws.com/kepod-provisioner:latest
+            command: ["node", "dist/provisioner/cleanupEnv.js"]
+            env:
+            - name: AWS_REGION
+              value: "us-east-1"
+            - name: DYNAMODB_TABLE
+              value: "kepod-environments"
+            - name: S3_BUCKET
+              value: "kepod-logs-868610198161"
+            - name: API_URL
+              value: "http://kepod-api-service.kepod.svc.cluster.local:3000"
+            envFrom:
+            - secretRef:
+                name: kepod-credentials
+          restartPolicy: OnFailure
