@@ -1,6 +1,6 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { KubeConfig, CoreV1Api, Log } from '@kubernetes/client-node';
-import logger from './utils/logger.js';
+import logger, { writeContainerLog } from './utils/logger.js';
 import { GetItemCommand } from '@aws-sdk/client-dynamodb';
 import { dynamoClient } from './awsClients.js';
 import { DYNAMODB_TABLE } from './utils/constants.js';
@@ -34,7 +34,6 @@ wss.on('connection', (ws: WebSocket) => {
       }
 
       const podList = await k8sCoreApi.listNamespacedPod({ namespace });
-      console.log(`Pod list in namespace ${namespace}:`, podList.items);
       const pod = podList.items.find(pod => pod.metadata?.name?.startsWith(`${namespace}-app`));
       if (!pod) {
         ws.send(JSON.stringify({ error: `No pod found in namespace ${namespace}` }));
@@ -49,7 +48,9 @@ wss.on('connection', (ws: WebSocket) => {
 
       const logStream = new Writable({
         write(chunk, encoding, callback) {
-          ws.send(chunk.toString());
+          const logLine = chunk.toString();
+          ws.send(logLine);
+          writeContainerLog(namespace, logLine);
           callback();
         },
       });
@@ -60,10 +61,10 @@ wss.on('connection', (ws: WebSocket) => {
         podName,
         pod.spec?.containers?.[0]?.name || 'main',
         logStream,
-        { follow: true, timestamps: true }
+        { follow: true }
       );
 
-      subscriptions.set(ws, { env_id, logStream, abortController });
+      subscriptions.set(ws, { env_id, namespace, logStream, abortController });
 
       logStream.on('error', (err) => {
         ws.send(JSON.stringify({ error: `Log stream error: ${err.message}` }));
@@ -74,7 +75,7 @@ wss.on('connection', (ws: WebSocket) => {
         abortController.abort();
         logStream.destroy();
         subscriptions.delete(ws);
-        logger.info({ message: `Client unsubscribed from env_id: ${env_id}` });
+        logger.info({ message: `Client unsubscribed from env_id: ${env_id}`, namespace });
       });
     } catch (error: any) {
       ws.send(JSON.stringify({ error: `Failed to stream logs: ${error.message}` }));
@@ -87,7 +88,7 @@ wss.on('connection', (ws: WebSocket) => {
       subscription.abortController.abort();
       subscription.logStream.destroy();
       subscriptions.delete(ws);
-      logger.info({ message: `Client unsubscribed from env_id: ${subscription.env_id}` });
+      logger.info({ message: `Client unsubscribed from env_id: ${subscription.env_id}`, namespace: subscription.namespace });
     }
   });
 });
