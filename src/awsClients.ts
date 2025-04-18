@@ -3,6 +3,7 @@ import { SQSClient } from '@aws-sdk/client-sqs';
 import { fromEnv } from '@aws-sdk/credential-providers';
 import { AWS_REGION } from './utils/constants.js';
 import 'dotenv/config';
+import { S3Client } from '@aws-sdk/client-s3';
 
 // Create DynamoDB Client
 const dynamoClient = new DynamoDBClient({
@@ -16,4 +17,9 @@ const sqsClient = new SQSClient({
   credentials: fromEnv(),
 });
 
-export { dynamoClient, sqsClient };
+const s3Client = new S3Client({ 
+  region: "us-east-1",
+  credentials: fromEnv() 
+});
+
+export { dynamoClient, sqsClient, s3Client };

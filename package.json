@@ -21,8 +21,10 @@
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.777.0",
+    "@aws-sdk/client-s3": "^3.787.0",
     "@aws-sdk/client-sqs": "^3.777.0",
     "@aws-sdk/credential-providers": "^3.778.0",
+    "@aws-sdk/util-dynamodb": "^3.788.0",
     "@kubernetes/client-node": "^1.1.2",
     "@types/express": "^5.0.0",
     "dotenv": "^16.4.7",
