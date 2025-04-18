@@ -13,6 +13,7 @@ spec:
       labels:
         app: kepod-provisioner
     spec:
+      serviceAccountName: default
       containers:
         - name: kepod-provisioner
           image: 868610198161.dkr.ecr.us-east-1.amazonaws.com/kepod-provisioner:latest
@@ -23,12 +24,13 @@ spec:
               value: "kepod-environments"
             - name: SQS_QUEUE_URL
               value: "https://sqs.us-east-1.amazonaws.com/868610198161/kepod-provisioning-queue"
-            - name: AWS_ACCESS_KEY_ID
-              value: "<your-access-key-id>"
-            - name: AWS_SECRET_ACCESS_KEY
-              value: "<your-secret-access-key>"
-            - name: AWS_SESSION_TOKEN
-              value: "<your-session-token>"
+            - name: S3_BUCKET
+              value: "kepod-logs-868610198161"
+            - name: API_URL
+              value: "http://kepod-api-service.kepod.svc.cluster.local:3000"
+          envFrom:
+            - secretRef:
+                name: kepod-credentials
           resources:
             requests:
               cpu: "250m"

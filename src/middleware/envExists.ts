@@ -13,6 +13,5 @@ export const envExists = (req: Request, res: Response, next: NextFunction) => {
     return;
   }
 
-
-  next(); // Pass to controller for DB check
+  next();
 };

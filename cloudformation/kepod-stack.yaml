@@ -179,12 +179,12 @@ Resources:
       Tags:
         Name: kepod-nodes
   # ECR Repository for KEPOD API
-  ECRRepository:
+  ECRRepositoryApi:
     Type: AWS::ECR::Repository
     Properties:
       RepositoryName: kepod-api
   # ECR Repository for Provisioner
-  ECRRepository:
+  ECRRepositoryProvisioner:
     Type: AWS::ECR::Repository
     Properties:
       RepositoryName: kepod-provisioner
@@ -207,6 +207,181 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: kepod-provisioning-queue
+  # S3 Bucket for Logs
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub kepod-logs-${AWS::AccountId}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+  # CloudWatch Dashboard for monitoring
+  # This dashboard includes metrics for EKS cluster, DynamoDB, SQS, and S3
+  CloudWatchDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: kepod-dashboard
+      DashboardBody: !Sub |
+        {
+          "widgets": [
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 0,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "AWS/EKS", "cluster_failed_node_count", "ClusterName", "${EKSCluster}" ],
+                  [ ".", "cluster_node_count", ".", "." ]
+                ],
+                "period": 300,
+                "stat": "Average",
+                "region": "us-east-1",
+                "title": "EKS Cluster Node Status"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 0,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "AWS/DynamoDB", "ConsumedReadCapacityUnits", "TableName", "${DynamoDBTable}" ],
+                  [ ".", "ConsumedWriteCapacityUnits", ".", "." ]
+                ],
+                "period": 300,
+                "stat": "Sum",
+                "region": "us-east-1",
+                "title": "DynamoDB Consumed Capacity"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 6,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "AWS/SQS", "NumberOfMessagesSent", "QueueName", "${SQSQueue}" ],
+                  [ ".", "NumberOfMessagesReceived", ".", "." ],
+                  [ ".", "ApproximateNumberOfMessagesVisible", ".", "." ]
+                ],
+                "period": 300,
+                "stat": "Sum",
+                "region": "us-east-1",
+                "title": "SQS Queue Metrics"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 6,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "AWS/NetworkELB", "HealthyHostCount", "LoadBalancer", "net/kepod" ],
+                  [ ".", "UnHealthyHostCount", ".", "." ]
+                ],
+                "period": 300,
+                "stat": "Average",
+                "region": "us-east-1",
+                "title": "Load Balancer Health"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 12,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "AWS/S3", "BucketSizeBytes", "BucketName", "${S3Bucket}", { "stat": "Average" } ],
+                  [ ".", "NumberOfObjects", ".", "." ]
+                ],
+                "period": 86400,
+                "stat": "Average",
+                "region": "us-east-1",
+                "title": "S3 Bucket Metrics"
+              }
+            }
+          ]
+        }
+  # CloudWatch Alarms
+  # These alarms are used to monitor the EKS cluster, DynamoDB, and SQS queue
+  EKSNodeCountAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: kepod-eks-node-count-alarm
+      AlarmDescription: Alarm when EKS node count is below minimum threshold
+      MetricName: cluster_node_count
+      Namespace: AWS/EKS
+      Dimensions:
+        - Name: ClusterName
+          Value: !Ref EKSCluster
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: LessThanThreshold
+  DynamoDBHighConsumedReadCapacityAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: kepod-dynamodb-read-capacity-alarm
+      AlarmDescription: Alarm when DynamoDB consumed read capacity is high
+      MetricName: ConsumedReadCapacityUnits
+      Namespace: AWS/DynamoDB
+      Dimensions:
+        - Name: TableName
+          Value: !Ref DynamoDBTable
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 240  # 80% of provisioned capacity
+      ComparisonOperator: GreaterThanThreshold
+  SQSQueueDepthAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: kepod-sqs-queue-depth-alarm
+      AlarmDescription: Alarm when SQS queue has too many messages
+      MetricName: ApproximateNumberOfMessagesVisible
+      Namespace: AWS/SQS
+      Dimensions:
+        - Name: QueueName
+          Value: !Ref SQSQueue
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 100
+      ComparisonOperator: GreaterThanThreshold
+  # CloudWatch Log Groups
+  # These log groups are used to store logs from the EKS cluster, API, and Provisioner
+  EKSClusterLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/eks/${EKSCluster}/cluster"
+      RetentionInDays: 7
+  ApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /kepod/api
+      RetentionInDays: 7
+  ProvisionerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /kepod/provisioner
+      RetentionInDays: 7
 Outputs:
   ClusterName:
     Value: !Ref EKSCluster
@@ -214,9 +389,15 @@ Outputs:
     Value: !Ref VPC
   SecurityGroupId:
     Value: !Ref EKSSecurityGroup
-  ECRRepositoryUri:
-    Value: !GetAtt ECRRepository.RepositoryUri
+  ECRRepositoryApiUri:
+    Value: !GetAtt ECRRepositoryApi.RepositoryUri
+  ECRRepositoryProvisionerUri:
+    Value: !GetAtt ECRRepositoryProvisioner.RepositoryUri
   DynamoDBTableArn:
     Value: !GetAtt DynamoDBTable.Arn
   SQSQueueUrl:
     Value: !Ref SQSQueue
+  S3BucketName:
+    Value: !Ref S3Bucket
+  CloudWatchDashboardUrl:
+    Value: !Sub "https://console.aws.amazon.com/cloudwatch/home?region=us-east-1#dashboards:name=${CloudWatchDashboard}"
