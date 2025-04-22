@@ -4,8 +4,12 @@ import envRoutes from './routes/envRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import './websocket.js';
+import cors from 'cors';
 
 const app = express();
+
+app.use(cors());
+
 app.use(express.json());
 app.use(requestLogger);
 app.use('/api', envRoutes);
