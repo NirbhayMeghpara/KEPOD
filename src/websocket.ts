@@ -21,7 +21,7 @@ wss.on('connection', (ws: WebSocket) => {
     try {
       const { env_id } = JSON.parse(message.toString());
       if (!env_id) {
-        ws.send(JSON.stringify({ error: 'Missing env_id' }));
+        ws.send(JSON.stringify({ type: 'error', message: 'Missing env_id' }));
         return;
       }
 
@@ -29,27 +29,27 @@ wss.on('connection', (ws: WebSocket) => {
 
       const namespace = await getNamespaceFromEnvId(env_id);
       if (!namespace) {
-        ws.send(JSON.stringify({ error: `No namespace found for env_id ${env_id}` }));
+        ws.send(JSON.stringify({ type: 'error', message: `No namespace found for env_id ${env_id}` }));
         return;
       }
 
       const podList = await k8sCoreApi.listNamespacedPod({ namespace });
       const pod = podList.items.find(pod => pod.metadata?.name?.startsWith(`${namespace}-app`));
       if (!pod) {
-        ws.send(JSON.stringify({ error: `No pod found in namespace ${namespace}` }));
+        ws.send(JSON.stringify({ type: 'error', message: `No pod found in namespace ${namespace}` }));
         return;
       }
 
       const podName = pod.metadata?.name;
       if (!podName) {
-        ws.send(JSON.stringify({ error: 'Pod name missing' }));
+        ws.send(JSON.stringify({ type: 'error', message: 'Pod name missing' }));
         return;
       }
 
       const logStream = new Writable({
         write(chunk, encoding, callback) {
           const logLine = chunk.toString();
-          ws.send(logLine);
+          ws.send(JSON.stringify({ type: 'log', message: logLine }));
           writeContainerLog(namespace, logLine);
           callback();
         },
@@ -67,7 +67,7 @@ wss.on('connection', (ws: WebSocket) => {
       subscriptions.set(ws, { env_id, namespace, logStream, abortController });
 
       logStream.on('error', (err) => {
-        ws.send(JSON.stringify({ error: `Log stream error: ${err.message}` }));
+        ws.send(JSON.stringify({ type: 'error', message: `Log stream error: ${err.message}` }));
         logStream.destroy();
       });
 
@@ -78,7 +78,7 @@ wss.on('connection', (ws: WebSocket) => {
         logger.info({ message: `Client unsubscribed from env_id: ${env_id}`, namespace });
       });
     } catch (error: any) {
-      ws.send(JSON.stringify({ error: `Failed to stream logs: ${error.message}` }));
+      ws.send(JSON.stringify({ type: 'error', message: `Failed to stream logs: ${error.message}` }));
     }
   });
 
