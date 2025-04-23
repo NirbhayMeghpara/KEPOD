@@ -147,6 +147,21 @@ The KEPOD system provisions ephemeral Kubernetes environments on demand. The arc
 
 ---
 
+## 🔮 What’s Next for KEPOD?
+
+Here’s a glimpse into upcoming features we’re planning to make KEPOD even more powerful and production-ready:
+
+1. **External Cluster Provisioning**  
+   → Allow developers to connect and deploy directly to their own Kubernetes clusters using temporary AWS credentials — making KEPOD adaptable for organizations with custom infrastructure.
+
+2. **Notification System (Email Alerts)**  
+   → Keep users in the loop with alerts for environment creation, expiry, deletion, and log status via Amazon SES or SendGrid. No more surprises — just clean, timely updates.
+
+3. **API Rate Limiting & Usage Quotas**  
+   → Ensure fair and secure usage with per-user rate limits and request quotas using intelligent middleware and request tracking.
+
+---
+
 ## 📁 Project Structure
 
 ```
